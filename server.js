@@ -22,15 +22,20 @@ const io = require('socket.io')(server,options);
 
 //runs when a user connects
 io.on('connection',socket =>{
-    console.log('Hello')
-    socket.emit('server','hello from server')
+    const id = socket.handshake.query.sendor;
+    socket.join(id)
 
-    //indicate a suer connected
-    socket.on("client",msg =>{
-        console.log(msg)
-        socket.emit(msg)
+    socket.on('send-message',({recipients, text})=>{
+        recipients.forEach(recipient=>{
+            const newRecipients = recipients.filter(receiver=>receiver !== recipient)
+            newRecipients.push(id)
+            socket.broadcast.to(recipient).emit('received-message',{
+                recipients: newRecipients,sender:id,text
+            })
+        })
     })
 })
+
 
 server.listen(PORT, ()=>{
     console.log(`connected on port ${PORT}`)
