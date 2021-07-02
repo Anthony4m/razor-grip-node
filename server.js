@@ -2,7 +2,6 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const formatMessages = require('./utils/messages');
 const { MongoClient } = require('mongodb');
 const Chat = require('./models/chats')
 const mongoose = require('mongoose');
@@ -36,36 +35,53 @@ const server = http.createServer(app);
 const io = require('socket.io')(server,options);
 
 //mongodb sandbox
-app.get("/add-chat",(req,res)=>{
-   const chat = new Chat({
-       sender: 'icod',
-       recipient: 'Anthony',
-       text: 'message from sandbox'
-   })
-    chat.save()
-        .then((result)=>{
-            res.send(result)
-        })
-        .catch((err)=>{
-            console.log(err)
-        })
-});
+// app.get("/add-chat",(req,res)=>{
+//    const chat = new Chat({
+//        sender: 'icod',
+//        recipient: 'Anthony',
+//        text: 'message from sandbox'
+//    })
+//     chat.save()
+//         .then((result)=>{
+//             res.send(result)
+//         })
+//         .catch((err)=>{
+//             console.log(err)
+//         })
+// });
+//
+// app.get("/all-chat",(req,res)=>{
+//     Chat.find()
+//         .then((result)=>{
+//             res.send(result)
+//         })
+//         .catch((error)=>{
+//             console.log(error)
+//         })
+// })
 
-app.get("/all-chat",(req,res)=>{
-    Chat.find()
-        .then((result)=>{
-            res.send(result)
-        })
-        .catch((error)=>{
-            console.log(error)
-        })
-})
+// stores users online
+const usersOnline ={
 
+};
 //runs when a user connects
 io.on('connection',socket =>{
     const id = socket.handshake.query.sendor;
     socket.join(id)
 
+    //Run when a user logged in
+    socket.on('login',()=>{
+        usersOnline[id] = id;
+        io.emit('loggedIn-users',usersOnline[id]);
+        console.log(usersOnline[id])
+    })
+    //run when a user log out
+    socket.on('disconnect',()=>{
+        delete usersOnline[id]
+        io.emit('loggedIn-users',usersOnline[id]);
+        console.log(usersOnline)
+    })
+    //When user hits send button take the message check the reciepient send it to the recipent store messge in database send it back to the user
     socket.on('send-message',({recipients, text})=>{
         recipients.forEach(recipient=>{
             const newRecipients = recipients.filter(receiver=>receiver !== recipient)
